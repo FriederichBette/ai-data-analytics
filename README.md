@@ -15,7 +15,7 @@ This project provides a local data analytics platform that allows users to query
 ### Backend
 *   **Framework**: FastAPI (Python)
 *   **LLM Integration**: Custom Text-to-SQL Engine supporting Ollama and OpenAI.
-*   **Database**: Supabase (PostgreSQL) via `supabase-py`.
+*   **Database**: Supabase (PostgreSQL) via supabase-py.
 
 ### Frontend
 *   **Framework**: Next.js 14 (App Router)
@@ -32,25 +32,29 @@ This project provides a local data analytics platform that allows users to query
 
 ### 1. Database Setup
 The project requires a Supabase database.
-1.  Navigate to the `database/` directory.
-2.  Execute `schema.sql` in your Supabase SQL Editor to create tables.
-3.  Execute `seed_data.sql` to populate the database with demo data.
+1.  Navigate to the [database/](cci:1://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/backend/main.py:108:0-118:59) directory.
+2.  Execute [schema.sql](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/database/schema.sql:0:0-0:0) in your Supabase SQL Editor to create tables.
+3.  Execute [seed_data.sql](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/database/seed_data.sql:0:0-0:0) to populate the database with demo data.
 
 ### 2. Environment Configuration
-The application requires specific environment variables. A start script handles this automatically, but you can configure it manually in a `.env` file (see `.env.example`).
+Since this project uses Supabase, you need to provide your own credentials.
+1.  Copy the example file:
+    `ash
+    copy .env.example .env
+    `
+2.  Open .env and start filling in your Supabase credentials (URL, Anon Key, Service Role Key).
 
-### 3. Automatic Startup (Recommended)
-Double-click the `FINAL_START.bat` file in the root directory. This script will:
-1.  Check for dependencies.
-2.  Set up the Python virtual environment.
-3.  Install all backend and frontend packages.
-4.  Start the Ollama LLM service (if not running).
-5.  Launch both the Backend API and Frontend UI.
+### 3. Startup
+Double-click the [start_app.bat](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/start_app.bat:0:0-0:0) file in the root directory. This script will:
+1.  Check if your .env file exists.
+2.  Install all backend and frontend packages automatically.
+3.  Start the Ollama LLM service connection.
+4.  Launch both the Backend API and Frontend UI.
 
 ## Architecture
 
 ### Text-to-SQL Engine
-The core logic resides in `backend/llm/text_to_sql.py`. It constructs a prompt containing the database schema and the user's query, sends it to the LLM, and sanitizes the returned SQL.
+The core logic resides in [backend/llm/text_to_sql.py](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/backend/llm/text_to_sql.py:0:0-0:0). It constructs a prompt containing the database schema and the user's query, sends it to the LLM, and sanitizes the returned SQL.
 
 ### Security Note
 The current implementation is designed for read-only analytics. In a production environment, ensure the database user has restricted permissions (READ ONLY) to prevent SQL injection attacks modifying data.
