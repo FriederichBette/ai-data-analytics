@@ -1,140 +1,59 @@
-# 🚀 Data Analytics LLM - Natürlichsprachliche Datenbank-Abfragen
+# LLM Data Analytics Platform
 
-Ein vollständiges System für automatische Datenintegration, Standardisierung und LLM-basierte SQL-Abfragen.
+## Project Overview
+This project provides a local data analytics platform that allows users to query a database using natural language. It leverages a local Large Language Model (LLM) via Ollama to translate natural language questions into executable SQL queries. The system is designed for privacy, performance, and ease of deployment.
 
-## 📋 Features
+## Key Features
+*   **Natural Language Interface**: Users can ask questions in plain German or English (e.g., "How many customers do we have?").
+*   **Local Processing**: Uses Gemma 2 (2B) via Ollama for privacy-preserving, offline inference.
+*   **Modern Stack**: Built with Python (FastAPI) for the backend and Next.js (TypeScript) for the frontend.
+*   **Database Integration**: Connects to a Supabase (PostgreSQL) database.
+*   **Automated setup**: Includes batch scripts for one-click installation and startup on Windows.
 
-- **Automatische Datenintegration**: Web Scraping & API-Integration
-- **ETL Pipeline**: Datenstandardisierung und -validierung
-- **Data Marts**: Strukturierte Datenspeicherung in Supabase
-- **LLM Text-to-SQL**: Natürlichsprachliche Abfragen (OpenAI oder Ollama)
-- **Interaktives UI**: Dashboard für Datenabfragen und Visualisierung
-- **Hybride Speicherung**: Strukturierte Daten + Vektoren (optional)
+## Technology Stack
 
-## 🏗️ Architektur
+### Backend
+*   **Framework**: FastAPI (Python)
+*   **LLM Integration**: Custom Text-to-SQL Engine supporting Ollama and OpenAI.
+*   **Database**: Supabase (PostgreSQL) via `supabase-py`.
 
-```
-┌─────────────┐
-│   Frontend  │  Next.js Dashboard
-│   (Next.js) │  Natürlichsprachliche Eingabe
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│   Backend   │  Python FastAPI
-│   (Python)  │  - LLM Integration (OpenAI/Ollama)
-│             │  - ETL Pipeline
-│             │  - Data Validation
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│  Supabase   │  PostgreSQL Database
-│  (Postgres) │  - Data Marts (Sales, Products, etc.)
-│             │  - pgvector (optional)
-└─────────────┘
-```
+### Frontend
+*   **Framework**: Next.js 14 (App Router)
+*   **Language**: TypeScript
+*   **Styling**: Tailwind CSS with custom glassmorphism design.
 
-## 🚀 Quick Start
+## Prerequisites
+*   **Windows OS** (Project is optimized for Windows environments)
+*   **Ollama**: Must be installed and running.
+*   **Python**: Version 3.10 or higher.
+*   **Node.js**: Version 18 or higher.
 
-### 1. Backend Setup
+## Installation and Setup
 
-```bash
-cd backend
-python -m venv venv
-venv\Scripts\activate  # Windows
-pip install -r requirements.txt
-```
+### 1. Database Setup
+The project requires a Supabase database.
+1.  Navigate to the `database/` directory.
+2.  Execute `schema.sql` in your Supabase SQL Editor to create tables.
+3.  Execute `seed_data.sql` to populate the database with demo data.
 
-### 2. Umgebungsvariablen konfigurieren
+### 2. Environment Configuration
+The application requires specific environment variables. A start script handles this automatically, but you can configure it manually in a `.env` file (see `.env.example`).
 
-Kopiere `.env.example` zu `.env` und fülle die Werte aus:
+### 3. Automatic Startup (Recommended)
+Double-click the `FINAL_START.bat` file in the root directory. This script will:
+1.  Check for dependencies.
+2.  Set up the Python virtual environment.
+3.  Install all backend and frontend packages.
+4.  Start the Ollama LLM service (if not running).
+5.  Launch both the Backend API and Frontend UI.
 
-```bash
-cp .env.example .env
-```
+## Architecture
 
-### 3. Datenbank initialisieren
+### Text-to-SQL Engine
+The core logic resides in `backend/llm/text_to_sql.py`. It constructs a prompt containing the database schema and the user's query, sends it to the LLM, and sanitizes the returned SQL.
 
-```bash
-cd database
-# Schema in Supabase importieren (siehe database/README.md)
-```
+### Security Note
+The current implementation is designed for read-only analytics. In a production environment, ensure the database user has restricted permissions (READ ONLY) to prevent SQL injection attacks modifying data.
 
-### 4. Backend starten
-
-```bash
-cd backend
-python main.py
-```
-
-### 5. Frontend Setup
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Öffne http://localhost:3000
-
-## 📁 Projektstruktur
-
-```
-data-analytics-llm/
-├── backend/
-│   ├── etl/              # ETL Pipelines
-│   ├── scrapers/         # Web Scraping Module
-│   ├── llm/              # LLM Text-to-SQL
-│   ├── api/              # FastAPI Endpoints
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── app/          # Next.js App Router
-│   │   ├── components/   # React Components
-│   │   └── lib/          # Utilities
-│   └── package.json
-├── database/
-│   ├── schema.sql        # Supabase Schema
-│   ├── migrations/       # DB Migrations
-│   └── seed_data.sql     # Demo Daten
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-## 🔑 Konfiguration
-
-### LLM Provider wählen
-
-In `.env`:
-
-**OpenAI (Cloud)**:
-```
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-```
-
-**Ollama (Lokal)**:
-```
-LLM_PROVIDER=ollama
-OLLAMA_MODEL=llama3
-OLLAMA_BASE_URL=http://localhost:11434
-```
-
-## 📊 Beispiel-Abfragen
-
-- "Zeige mir die Top 10 Verkäufe im August sortiert nach Umsatz"
-- "Welche Produkte haben die höchste Marge?"
-- "Wie viele Kunden haben wir in Deutschland?"
-- "Vergleiche Umsatz Q1 vs Q2 2024"
-
-## 🛠️ Technologie-Stack
-
-- **Backend**: Python, FastAPI, SQLAlchemy
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Database**: Supabase (PostgreSQL + pgvector)
-- **LLM**: OpenAI GPT-4 oder Ollama (Llama 3)
-- **ETL**: Pandas, BeautifulSoup, Requests
-
-## 📝 Lizenz
-
-MIT
+## License
+MIT License

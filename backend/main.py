@@ -141,4 +141,4 @@ if __name__ == "__main__":
     print(f"🚀 Starting Data Analytics LLM API on {host}:{port}")
     print(f"📊 LLM Provider: {os.getenv('LLM_PROVIDER', 'not configured')}")
     
-    uvicorn.run(app, host=host, port=port, reload=True)
+    uvicorn.run("main:app", host=host, port=port, reload=True)
