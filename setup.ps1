@@ -31,7 +31,7 @@ OPENAI_MODEL=gpt-4o-mini
 
 # Ollama Configuration
 OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=gemma2:4b
+OLLAMA_MODEL=gemma2:2b
 
 # Backend Configuration
 BACKEND_PORT=8000
