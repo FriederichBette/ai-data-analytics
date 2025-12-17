@@ -1,0 +1,42 @@
+# Web Framework
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# Database
+supabase==2.3.0
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.25
+
+# Data Processing
+pandas==2.1.4
+numpy==1.26.3
+
+# Web Scraping
+beautifulsoup4==4.12.3
+requests==2.31.0
+lxml==5.1.0
+
+# LLM Integration
+openai==1.10.0
+langchain==0.1.4
+langchain-openai==0.0.5
+langchain-community==0.0.16
+
+# Utilities
+python-dotenv==1.0.0
+python-multipart==0.0.6
+httpx==0.26.0
+
+# Data Validation
+pydantic[email]==2.5.3
+
+# CORS
+fastapi-cors==0.0.6
+
+# Logging
+loguru==0.7.2
+
+# Date/Time
+python-dateutil==2.8.2
