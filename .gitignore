@@ -1,22 +1,23 @@
-# Sicherheit: Keine Passwörter hochladen!
-.env
-.env.local
-FINAL_START.bat
-PROJECT_START.bat
+# Python / Backend
+backend/venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/logs/
+backend/*.log
+backend/test_db.py
+backend/test_api.py
 
-# Python
-__pycache__/
-*.py[cod]
-venv/
-.pytest_cache/
-
-# Node
-node_modules/
-.next/
-out/
-build/
-dist/
+# Node / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+frontend/out/
 
 # System
 .DS_Store
 Thumbs.db
+
+# IDE
+.vscode/
+.idea/

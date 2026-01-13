@@ -1,63 +1,96 @@
-# LLM Data Analytics Platform
+# Local Data Analytics Platform
 
-## Project Overview
-This project provides a local data analytics platform that allows users to query a database using natural language. It leverages a local Large Language Model (LLM) via Ollama to translate natural language questions into executable SQL queries. The system is designed for privacy, performance, and ease of deployment.
-
-## Key Features
-*   **Natural Language Interface**: Users can ask questions in plain German or English (e.g., "How many customers do we have?").
-*   **Local Processing**: Uses Gemma 2 (2B) via Ollama for privacy-preserving, offline inference.
-*   **Modern Stack**: Built with Python (FastAPI) for the backend and Next.js (TypeScript) for the frontend.
-*   **Database Integration**: Connects to a Supabase (PostgreSQL) database.
-*   **Automated setup**: Includes batch scripts for one-click installation and startup on Windows.
-
-## Technology Stack
-
-### Backend
-*   **Framework**: FastAPI (Python)
-*   **LLM Integration**: Custom Text-to-SQL Engine supporting Ollama and OpenAI.
-*   **Database**: Supabase (PostgreSQL) via supabase-py.
-
-### Frontend
-*   **Framework**: Next.js 14 (App Router)
-*   **Language**: TypeScript
-*   **Styling**: Tailwind CSS with custom glassmorphism design.
-
-## Prerequisites
-*   **Windows OS** (Project is optimized for Windows environments)
-*   **Ollama**: Must be installed and running.
-*   **Python**: Version 3.10 or higher.
-*   **Node.js**: Version 18 or higher.
-
-## Installation and Setup
-
-### 1. Database Setup
-The project requires a Supabase database.
-1.  Navigate to the [database/](cci:1://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/backend/main.py:108:0-118:59) directory.
-2.  Execute [schema.sql](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/database/schema.sql:0:0-0:0) in your Supabase SQL Editor to create tables.
-3.  Execute [seed_data.sql](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/database/seed_data.sql:0:0-0:0) to populate the database with demo data.
-
-### 2. Environment Configuration
-Since this project uses Supabase, you need to provide your own credentials.
-1.  Copy the example file:
-    `ash
-    copy .env.example .env
-    `
-2.  Open .env and start filling in your Supabase credentials (URL, Anon Key, Service Role Key).
-
-### 3. Startup
-Double-click the [start_app.bat](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/start_app.bat:0:0-0:0) file in the root directory. This script will:
-1.  Check if your .env file exists.
-2.  Install all backend and frontend packages automatically.
-3.  Start the Ollama LLM service connection.
-4.  Launch both the Backend API and Frontend UI.
+A privacy-focused data analytics tool that allows users to query a PostgreSQL database using natural language. The system runs locally, leveraging an LLM (Gemma 2 via Ollama) to translate questions into SQL queries.
 
 ## Architecture
 
-### Text-to-SQL Engine
-The core logic resides in [backend/llm/text_to_sql.py](cci:7://file:///C:/Users/user/.gemini/antigravity/scratch/data-analytics-llm/backend/llm/text_to_sql.py:0:0-0:0). It constructs a prompt containing the database schema and the user's query, sends it to the LLM, and sanitizes the returned SQL.
+This project follows a three-tier architecture:
+- **Frontend:** Next.js (React/TypeScript) styled with Tailwind CSS. Provides a clean, Google-inspired interface.
+- **Backend:** Python FastAPI. Handles request processing, prompt engineering, and database execution.
+- **Database:** PostgreSQL (Supabase).
+- **Inference:** Local LLM via Ollama (`gemma2:2b`).
 
-### Security Note
-The current implementation is designed for read-only analytics. In a production environment, ensure the database user has restricted permissions (READ ONLY) to prevent SQL injection attacks modifying data.
+## Prerequisites
 
-## License
-MIT License
+1.  **Ollama**: Must be installed and running locally.
+    -   Model: `ollama pull gemma2:2b`
+2.  **Supabase Account**: A PostgreSQL database (free tier sufficient).
+3.  **Python 3.10+** and **Node.js 18+**.
+
+## Installation
+
+### 1. Clone Repository
+```bash
+git clone <repository-url>
+cd data-analytics-llm
+```
+
+### 2. Backend Setup
+```bash
+cd backend
+python -m venv venv
+.\venv\Scripts\Activate
+pip install -r requirements.txt
+```
+
+**Configuration:**
+Create a `.env` file in the `backend/` directory:
+```env
+DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT-ID].supabase.co:5432/postgres
+OLLAMA_URL=http://127.0.0.1:11434/api/generate
+OLLAMA_MODEL=gemma2:2b
+```
+
+### 3. Frontend Setup
+```bash
+cd frontend
+npm install
+```
+
+## Running the Application
+
+1.  Start Ollama (ensure it is running in the background).
+2.  Start Backend (Port 8080):
+    ```bash
+    cd backend
+    .\venv\Scripts\Activate
+    uvicorn main:app --reload --port 8080
+    ```
+3.  Start Frontend (Port 3000):
+    ```bash
+    cd frontend
+    npm run dev
+    ```
+4.  Open browser at `http://localhost:3000`.
+
+---
+
+## Usage Guide (Prompts)
+
+The system uses a small local model (`gemma2:2b`). For best results, use precise and simple language. The database contains a `transactions` table with columns: `date`, `category`, `amount`, `description`. 
+
+**Note on Financial Data:** Expenses are stored as negative values (e.g., -50.00), Income as positive values.
+
+### Query Examples
+
+**1. Viewing Data**
+*   "Show all transactions."
+*   "Show the last 5 transactions."
+*   "Show all transactions from January 2024."
+
+**2. Aggregations (Sums)**
+*   "What is the total sum of all expenses?"
+    *   *Result:* Calculates sum of all negative values.
+*   "How much did I spend on 'Lebensmittel'?"
+    *   *Result:* Sums amount where category is 'Lebensmittel'.
+*   "What is my total income?"
+    *   *Result:* Sums all positive values (e.g., salary).
+
+**3. Filtering**
+*   "Show all expenses greater than 100 Euro."
+    *   *Note:* The LLM understands "expenses", but technically asks for `amount < -100`.
+*   "List all transactions for the category 'Miete'."
+
+**4. Complex Queries**
+*   "What was the most expensive transaction?"
+    *   *Prompt:* "Sort by amount ascending limit 1".

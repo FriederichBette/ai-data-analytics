@@ -1,26 +1,19 @@
-"""
-FastAPI Backend für Data Analytics LLM System
-"""
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
 import os
+import re
+import httpx
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from dotenv import load_dotenv
-
-from llm.text_to_sql import TextToSQLEngine
-from api.database import DatabaseManager
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 # Load environment variables
 load_dotenv()
 
-app = FastAPI(
-    title="Data Analytics LLM API",
-    description="Natürlichsprachliche Datenbank-Abfragen mit LLM",
-    version="1.0.0"
-)
+app = FastAPI(title="LLM Data Analytics Backend")
 
-# CORS Configuration
+from fastapi.middleware.cors import CORSMiddleware
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -29,116 +22,124 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize components
-db_manager = DatabaseManager()
-text_to_sql = TextToSQLEngine()
+# Configuration
+# WICHTIG: Du brauchst den "Direct Connection String" von Supabase Settings -> Database -> Connection String -> URI
+DATABASE_URL = os.getenv("DATABASE_URL") 
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma2:2b") # Default fallback
 
+# System Prompt: Hier erklären wir dem LLM die Datenbank
+SYSTEM_PROMPT = """
+You are a PostgreSQL expert. Your job is to translate natural language questions into executable SQL queries.
+You must ONLY output the SQL query. Do not add any markdown, explanation, or notes.
+
+The database schema is as follows:
+
+Table: public.transactions
+Columns:
+- id (uuid)
+- amount (decimal) - Negative values usually mean expenses, but check context.
+- category (text) - e.g. 'Miete', 'Lebensmittel', 'Gehalt'
+- description (text)
+- date (date)
+
+Rules:
+1. Return ONLY valid SQL.
+2. Use valid PostgreSQL syntax.
+3. If the user asks for "Ausgaben" (expenses), look for amounts.
+4. Do not delete or modify data, only SELECT.
+"""
 
 class QueryRequest(BaseModel):
-    """Request model for natural language queries"""
-    query: str
-    max_rows: Optional[int] = 100
-
+    natural_language_query: str
 
 class QueryResponse(BaseModel):
-    """Response model for query results"""
-    success: bool
-    sql_query: Optional[str] = None
-    data: Optional[List[Dict[str, Any]]] = None
-    error: Optional[str] = None
-    row_count: Optional[int] = None
+    sql_query: str
+    data: list
+    error: str | None = None
 
+def get_db_connection():
+    if not DATABASE_URL:
+        raise Exception("DATABASE_URL is missing in .env")
+    return psycopg2.connect(DATABASE_URL)
+
+def clean_sql(llm_response: str) -> str:
+    """Removes markdown code blocks and extra text from LLM response"""
+    # Remove ```sql ... ```
+    clean = re.sub(r'```sql\s*', '', llm_response, flags=re.IGNORECASE)
+    clean = re.sub(r'```', '', clean)
+    # Entferne Whitespace vorne/hinten
+    return clean.strip()
 
 @app.get("/")
-async def root():
-    """Health check endpoint"""
-    return {
-        "status": "online",
-        "service": "Data Analytics LLM API",
-        "version": "1.0.0"
-    }
-
-
-@app.get("/health")
-async def health_check():
-    """Detailed health check"""
-    return {
-        "status": "healthy",
-        "database": "connected" if db_manager.is_connected() else "disconnected",
-        "llm_provider": os.getenv("LLM_PROVIDER", "not_configured")
-    }
-
+def read_root():
+    return {"status": "online", "model": OLLAMA_MODEL}
 
 @app.post("/query", response_model=QueryResponse)
-async def execute_natural_language_query(request: QueryRequest):
-    """
-    Execute a natural language query against the database
-    
-    Example:
-    {
-        "query": "Zeige mir die Top 10 Verkäufe im August sortiert nach Umsatz"
-    }
-    """
+async def process_query(request: QueryRequest):
     try:
-        # Convert natural language to SQL
-        sql_query = await text_to_sql.generate_sql(request.query)
+        print(f"Received query: {request.natural_language_query}")
         
-        if not sql_query:
-            raise HTTPException(
-                status_code=400,
-                detail="Konnte keine SQL-Abfrage aus der Eingabe generieren"
-            )
+        # 1. Construct Prompt
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {request.natural_language_query}\nSQL Query:"
         
-        # Execute SQL query
-        results = await db_manager.execute_query(sql_query, max_rows=request.max_rows)
-        
-        return QueryResponse(
-            success=True,
-            sql_query=sql_query,
-            data=results,
-            row_count=len(results)
-        )
-        
-    except Exception as e:
-        return QueryResponse(
-            success=False,
-            error=str(e)
-        )
+        # 2. Call Ollama
+        llm_result = ""
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as client:
+                print(f"Connecting to Ollama at {OLLAMA_URL}...")
+                response = await client.post(
+                    OLLAMA_URL,
+                    json={
+                        "model": OLLAMA_MODEL,
+                        "prompt": full_prompt,
+                        "stream": False,
+                        "options": {"temperature": 0.1}
+                    }
+                )
+                if response.status_code != 200:
+                    raise Exception(f"Ollama Error {response.status_code}: {response.text}")
+                
+                llm_result = response.json().get("response", "")
+                print(f"LLM Raw Output: {llm_result}")
+                
+        except Exception as e:
+            # Log specific Ollama error
+            with open("ollama_error.log", "w") as f:
+                f.write(str(e))
+            raise HTTPException(status_code=500, detail=f"Ollama Fail: {str(e)}")
 
+        # 3. Clean SQL
+        sql_query = clean_sql(llm_result)
+        print(f"Cleaned SQL: {sql_query}")
+        
+        # 4. Execute SQL
+        data = []
+        error_msg = None
+        
+        try:
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            cur.execute(sql_query)
+            data = cur.fetchall()
+            cur.close()
+            conn.close()
+        except psycopg2.OperationalError as e:
+            error_msg = f"DB Connection Error: {str(e)}"
+        except Exception as e:
+            error_msg = f"SQL Error: {str(e)}"
 
-@app.get("/schema")
-async def get_database_schema():
-    """Get the current database schema for reference"""
-    try:
-        schema = await db_manager.get_schema_info()
         return {
-            "success": True,
-            "schema": schema
+            "sql_query": sql_query,
+            "data": data,
+            "error": error_msg
         }
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/tables")
-async def list_tables():
-    """List all available tables in the database"""
-    try:
-        tables = await db_manager.list_tables()
-        return {
-            "success": True,
-            "tables": tables
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-if __name__ == "__main__":
-    import uvicorn
-    
-    port = int(os.getenv("BACKEND_PORT", 8000))
-    host = os.getenv("BACKEND_HOST", "0.0.0.0")
-    
-    print(f"🚀 Starting Data Analytics LLM API on {host}:{port}")
-    print(f"📊 LLM Provider: {os.getenv('LLM_PROVIDER', 'not configured')}")
-    
-    uvicorn.run("main:app", host=host, port=port, reload=True)
+        # GLOBAL CRASH HANDLER
+        import traceback
+        error_trace = traceback.format_exc()
+        with open("backend_crash.log", "w") as f:
+            f.write(error_trace)
+        print("CRASH DETECTED!")
+        raise HTTPException(status_code=500, detail=f"CRASH: {str(e)}")

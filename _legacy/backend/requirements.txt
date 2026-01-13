@@ -1,0 +1,42 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# Database
+supabase
+psycopg2-binary
+sqlalchemy
+
+# Data Processing
+pandas
+numpy
+
+# Web Scraping
+beautifulsoup4
+requests
+lxml
+
+# LLM Integration
+openai
+langchain
+langchain-openai
+langchain-community
+
+# Utilities
+python-dotenv
+python-multipart
+httpx
+
+# Data Validation
+pydantic[email]
+
+# CORS
+fastapi-cors
+
+# Logging
+loguru
+
+# Date/Time
+python-dateutil

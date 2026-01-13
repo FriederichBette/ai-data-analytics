@@ -1,0 +1,22 @@
+# Sicherheit: Keine Passwörter hochladen!
+.env
+.env.local
+FINAL_START.bat
+PROJECT_START.bat
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.pytest_cache/
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# System
+.DS_Store
+Thumbs.db
